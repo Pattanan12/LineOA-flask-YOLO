@@ -21,7 +21,6 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', '71b1d3aed54fba8b572c5b64d0318c89')
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'JELc63Iy6RD21WuajBWof71GtOaIuuCJJKaX6Syhrc+hCKDm4jojliQOHcmZxw9nlxrlUWh7iYQplPqzwYIgcJXibNtUaJIxS/GCyvn2KtgPsvRzWiLXTFW5nGAyvnxWZgHyukBPcXon8I2K6H3SggdB04t89/1O/w1cDnyilFU=')
 
-line_bot_api = LineBotApi(channel_access_token)
 configuration = Configuration(access_token=channel_access_token)
 handler = WebhookHandler(channel_secret)
 
@@ -63,7 +62,6 @@ def callback():
 
     return 'OK'
 
-@handler.add(MessageEvent, message=ImageMessageContent)
 def handle_image_message(event):
     # Initialize the API client with the correct configuration
     api_client = ApiClient(configuration)
@@ -123,8 +121,8 @@ def handle_image_message(event):
     result_path = os.path.join(static_tmp_path, 'result.jpg')
     cv2.imwrite(result_path, image)
 
-    url = request.url_root.rstrip('/') + '/static/tmp/result.jpg'
-    line_bot_api.reply_message(
+    url = request.url_root + 'static/tmp/result.jpg'
+    configuration.reply_message(
         event.reply_token, [
             ImageSendMessage(original_content_url=url, preview_image_url=url)
         ])

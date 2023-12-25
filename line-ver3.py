@@ -16,9 +16,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
 
 # Load environment variables
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', '71b1d3aed54fba8b572c5b64d0318c89')
-channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'JELc63Iy6RD21WuajBWof71GtOaIuuCJJKaX6Syhrc+hCKDm4jojliQOHcmZxw9nlxrlUWh7iYQplPqzwYIgcJXibNtUaJIxS/GCyvn2KtgPsvRzWiLXTFW5nGAyvnxWZgHyukBPcXon8I2K6H3SggdB04t89/1O/w1cDnyilFU=')
+channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN',
+                                 'JELc63Iy6RD21WuajBWof71GtOaIuuCJJKaX6Syhrc+hCKDm4jojliQOHcmZxw9nlxrlUWh7iYQplPqzwYIgcJXibNtUaJIxS/GCyvn2KtgPsvRzWiLXTFW5nGAyvnxWZgHyukBPcXon8I2K6H3SggdB04t89/1O/w1cDnyilFU=')
 if channel_secret is None or channel_access_token is None:
-    #print('Specify LINE_CHANNEL_SECRET and LINE_CHANNEL_ACCESS_TOKEN as environment variables.')
+    # print('Specify LINE_CHANNEL_SECRET and LINE_CHANNEL_ACCESS_TOKEN as environment variables.')
     sys.exit(1)
 
 line_bot_api = LineBotApi(channel_access_token)
@@ -36,6 +37,7 @@ with open(classes_path, 'r') as f:
 
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
+
 def load_yolo_model():
     try:
         net = cv2.dnn.readNetFromDarknet(yolo_config_path, yolo_weights_path)
@@ -43,6 +45,7 @@ def load_yolo_model():
     except Exception as e:
         print(f"Error loading YOLO model: {e}")
         raise
+
 
 def load_classes():
     try:
@@ -53,13 +56,16 @@ def load_classes():
         print(f"Error loading classes: {e}")
         raise
 
+
 def get_output_layers(net):
     layer_names = net.getLayerNames()
     return [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
+
 @app.route("/", methods=['GET'])
 def home():
     return "Object Detection API"
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -80,10 +86,12 @@ def callback():
 
     return 'OK'
 
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_text_message(event):
     text = event.message.text
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=event.message.text))
+
 
 @handler.add(MessageEvent, message=ImageMessage)
 def handle_content_message(event):
@@ -101,7 +109,7 @@ def handle_content_message(event):
     Height = image.shape[0]
     scale = 0.00392
 
-    blob = cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
+    blob = cv2.dnn.blobFromImage(image, scale, (416, 416), (0, 0, 0), True, crop=False)
     net.setInput(blob)
     outs = net.forward(get_output_layers(net))
 
@@ -136,8 +144,9 @@ def handle_content_message(event):
         y = box[1]
         w = box[2]
         h = box[3]
-        cv2.rectangle(image, (round(x), round(y)), (round(x+w), round(y+h)), (255,0,0), 2)
-        cv2.putText(image, str(classes[class_ids[i]]) + ":" + str(confidences[i]), (round(x-10), round(y-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 2)
+        cv2.rectangle(image, (round(x), round(y)), (round(x + w), round(y + h)), (255, 0, 0), 2)
+        cv2.putText(image, str(classes[class_ids[i]]) + ":" + str(confidences[i]), (round(x - 10), round(y - 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
     save_path = os.path.join(static_tmp_path, 'result.jpg')
     cv2.imwrite(save_path, image)
@@ -148,13 +157,15 @@ def handle_content_message(event):
             ImageSendMessage(os.path.join('static', 'tmp', 'result.jpg'), os.path.join('static', 'tmp', 'result.jpg'))
         ])
 
+
 @app.route('/static/<path:path>')
 def send_static_content(path):
     return send_from_directory('static', path)
 
+
 if __name__ == "__main__":
     try:
-        
+
         if not os.path.exists(static_tmp_path):
             os.makedirs(static_tmp_path)
         app.run(host="0.0.0.0", port=8000, debug=True)
